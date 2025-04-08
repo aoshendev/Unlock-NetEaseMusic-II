@@ -1,4 +1,4 @@
-# coding: utf-8
+https://music.163.com/st/pip/lyric/inject.js# coding: utf-8
 
 import os
 import time
