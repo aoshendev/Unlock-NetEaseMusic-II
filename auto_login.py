@@ -23,7 +23,7 @@ CHROMEDRIVER_URL = "https://storage.googleapis.com/chrome-for-testing-public/134
 def download_and_extract(url, output_dir):
     zip_path = output_dir + ".zip"
     if not os.path.exists(output_dir):
-        logging.info(f"⬇️ Downloading: {url}")
+        logging.info("\u2b07\ufe0f Downloading: {}".format(url))
         urllib.request.urlretrieve(url, zip_path)
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall(output_dir)
@@ -33,8 +33,8 @@ def prepare_browser():
     download_and_extract(CHROME_URL, CHROME_DIR)
     download_and_extract(CHROMEDRIVER_URL, CHROMEDRIVER_DIR)
 
-    chrome_path = os.path.abspath(f"{CHROME_DIR}/chrome.exe")
-    chromedriver_path = os.path.abspath(f"{CHROMEDRIVER_DIR}/chromedriver.exe")
+    chrome_path = os.path.abspath(os.path.join(CHROME_DIR, "chrome.exe"))
+    chromedriver_path = os.path.abspath(os.path.join(CHROMEDRIVER_DIR, "chromedriver.exe"))
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.binary_location = chrome_path
@@ -56,7 +56,7 @@ def enter_iframe(browser):
         browser.switch_to.frame(iframe)
         logging.info("Switched to login iframe")
     except Exception as e:
-        logging.error(f"Failed to enter iframe: {e}")
+        logging.error("Failed to enter iframe: {}".format(e))
         browser.save_screenshot("debug_iframe.png")
         raise
     return browser
@@ -69,15 +69,15 @@ def extension_login():
     try:
         browser = prepare_browser()
     except Exception as e:
-        logging.error(f"❌ Failed to initialize ChromeDriver: {e}")
+        logging.error("❌ Failed to initialize ChromeDriver: {}".format(e))
         return
 
-    browser.get('https://music.163.com')
+    browser.get("https://music.163.com")
 
     logging.info("Injecting Cookie to skip login")
     browser.add_cookie({
         "name": "MUSIC_U",
-        "value": "00509E93E2F303876BA95E1B1F3353DB93733461846DBA6507...（你的 Cookie）",
+        "value": "你的COOKIE在这里替换",
         "domain": ".music.163.com"
     })
 
@@ -90,8 +90,8 @@ def extension_login():
     time.sleep(10)
     browser.quit()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         extension_login()
     except Exception as e:
-        logging.error(f"Failed to execute login script: {e}")
+        logging.error("❌ Failed to execute login script: {}".format(e))
