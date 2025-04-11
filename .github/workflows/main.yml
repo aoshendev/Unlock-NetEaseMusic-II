@@ -2,7 +2,7 @@ name: Unlock-NetEaseMusic
 
 on:
   schedule:
-    - cron: "37 */8 * * *" # Runs every 8 hours
+    - cron: "37 */8 * * *"
   workflow_dispatch:
 
 jobs:
@@ -13,34 +13,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install Chrome & Chromedriver
+      - name: Install Chrome (Win64 Stable)
         run: |
-          echo "Installing Google Chrome and Chromedriver..."
-          choco install googlechrome -y
-          choco install chromedriver -y --force
-          echo "✅ Chrome & Chromedriver installed successfully."
+          echo "Installing Google Chrome..."
+          choco install googlechrome --ignore-checksums -y
+          echo "✅ Chrome installed"
 
-      - name: Debug Chrome and Chromedriver
-        shell: pwsh # 强制使用 PowerShell
+      - name: Debug Chrome version
+        shell: pwsh
         run: |
           echo "Checking Chrome version..."
-          if (Test-Path "C:\Program Files\Google\Chrome\Application\chrome.exe") {
-              & "C:\Program Files\Google\Chrome\Application\chrome.exe" --version
-          } else {
-              echo "❌ Chrome not found!"
-          }
-
-          echo "Checking Chromedriver version..."
-          if (Get-Command chromedriver -ErrorAction SilentlyContinue) {
-              chromedriver --version
-          } else {
-              echo "❌ Chromedriver not found!"
-          }
+          & "C:\Program Files\Google\Chrome\Application\chrome.exe" --version
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install --upgrade webdriver-manager
 
       - name: Run unlock script
         env:
