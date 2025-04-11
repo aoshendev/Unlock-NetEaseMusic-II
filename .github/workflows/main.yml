@@ -28,7 +28,7 @@ jobs:
 
       - name: Upload debug screenshot (if exists)
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: debug-screenshot
           path: debug_after_cookie.png
