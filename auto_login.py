@@ -3,70 +3,80 @@
 import os
 import time
 import logging
+import zipfile
+import urllib.request
+import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from retrying import retry
 
-# Configure logging
+# === 配置 ===
+CHROME_DIR = "chrome-win64"
+CHROMEDRIVER_DIR = "chromedriver-win64"
+COOKIE_MUSIC_U = "0092F055425C76D0DBC620FFBF7E31493E58FEE462574A576BEDC54FD7DE6D1EECFDB0FD3BA7C52891E66FB220FF75D0C74BA5900A2862320E16AC173DBDD833C815E291C6804E55E8B419512744687C72A191A19B3E756C6B59BBB08B5DC0C686EF370157E81862D65F1B350AAE010D00B0F4706EA85C9D98D5263EDC3BB4AC208C0B87E7C606834AA70DFCE4B0DC28DB3DC44C5E66CB346ED60296461C07DB8EFB605D1FD09F31DDF6FC409EB4AC70856F07F0CB1BA05D33EA1449417311CFDF9C16F03D6B4B3CDB347B880DAF6795B150F46E9E524CC432486ED8C14F5D886FF09ED4E05338C4AE952C07D3BCA7CB5A8F51368C136DF1D28DE4FB63811B0BA2CC6A7D2D7321100056D652ACE07417B1DECCA487607DB132F327CF12F83953192C7B9032ABB01AC22489BECA2C2215ADEFD8E9FAC5E00648A8123929C80FBF8EB7A82919D1ABC7979EA72B28A5E7865B36E5B3196DCCD968565E3A3DDD4346EE"  # ← 请替换为你的真实 Cookie
+
+# === 日志配置 ===
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(asctime)s %(message)s')
 
-@retry(wait_random_min=5000, wait_random_max=10000, stop_max_attempt_number=3)
-def enter_iframe(browser):
-    logging.info("Enter login iframe")
-    time.sleep(5)  # 给 iframe 额外时间加载
-    try:
-        iframe = WebDriverWait(browser, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//*[starts-with(@id,'x-URS-iframe')]")
-        ))
-        browser.switch_to.frame(iframe)
-        logging.info("Switched to login iframe")
-    except Exception as e:
-        logging.error(f"Failed to enter iframe: {e}")
-        browser.save_screenshot("debug_iframe.png")  # 记录截图
-        raise
-    return browser
+def download_and_extract(url, output_dir):
+    zip_path = output_dir + ".zip"
+    logging.info(f"⬇️ Downloading: {url}")
+    urllib.request.urlretrieve(url, zip_path)
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(output_dir)
+    os.remove(zip_path)
 
-@retry(wait_random_min=1000, wait_random_max=3000, stop_max_attempt_number=5)
-def extension_login():
+def prepare_chrome_and_driver():
+    logging.info("🔍 Fetching latest Chrome version info from Google")
+    meta_url = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
+    with urllib.request.urlopen(meta_url) as response:
+        data = json.loads(response.read())
+
+    version = data["channels"]["Stable"]["version"]
+    logging.info(f"✅ Latest Stable Chrome: {version}")
+
+    chrome_url = data["channels"]["Stable"]["downloads"]["chrome"][3]["url"]  # win64
+    driver_url = data["channels"]["Stable"]["downloads"]["chromedriver"][3]["url"]  # win64
+
+    if not os.path.exists(CHROME_DIR):
+        download_and_extract(chrome_url, CHROME_DIR)
+    if not os.path.exists(CHROMEDRIVER_DIR):
+        download_and_extract(driver_url, CHROMEDRIVER_DIR)
+
+    return (
+        os.path.abspath(f"{CHROME_DIR}/chrome.exe"),
+        os.path.abspath(f"{CHROMEDRIVER_DIR}/chromedriver.exe")
+    )
+
+def run_unlock(chrome_path, chromedriver_path):
     chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_extension("NetEaseMusicWorldPlus.crx")
+    chrome_options.binary_location = chrome_path
 
-    logging.info("Load Chrome extension NetEaseMusicWorldPlus")
-    chrome_options.add_extension('NetEaseMusicWorldPlus.crx')
-
-    logging.info("Initializing Chrome WebDriver")
-    try:
-        # service = Service(ChromeDriverManager().install())  # Auto-download correct chromedriver
-        service = Service(os.path.abspath("./chromedriver.exe"))
-        browser = webdriver.Chrome(service=service, options=chrome_options)
-    except Exception as e:
-        logging.error(f"Failed to initialize ChromeDriver: {e}")
-        return
-
-    # Set global implicit wait
+    service = Service(chromedriver_path)
+    browser = webdriver.Chrome(service=service, options=chrome_options)
     browser.implicitly_wait(20)
 
-    browser.get('https://music.163.com')
+    browser.get("https://music.163.com")
+    logging.info("🍪 Injecting MUSIC_U Cookie")
+    browser.add_cookie({
+        "name": "MUSIC_U",
+        "value": COOKIE_MUSIC_U,
+        "domain": ".music.163.com"
+    })
 
-    # Inject Cookie to skip login
-    logging.info("Injecting Cookie to skip login")
-    browser.add_cookie({"name": "MUSIC_U", "value": "00509E93E2F303876BA95E1B1F3353DB93733461846DBA650767351EFF2B213B881C7C6EE419109C49195C7442577628B53691781F3576BA86D22007D3BC312EE6F5602732A70F68B4482153E869BA27538FFC382BBE6C1EEBA1433C98CE5E3089E1295832C1137A34E320886CC7906D47730C1E6684CF77ECF880D45B34E22850A4901A130832DCD1D38AE3F120D472B214E128C015A03762713CE83FA5AFDF29FC5ED5360429FC6C6E28E2FE3EE534D75D3A71D4F9DF6D27E14F79C84630962077296C01767A5BD5A40083E5AD2743AD41B71185F98BE7E6D4AA04E23616FCC8EE930C1D8CA86DF95B3DB60D88C4145C3060E6C6D0C5D348FA81C14F2B06C2D8E4B6971E5E695BB7E1234985BA0CB7CFBC213A0E8A3A3B49499CB06EB47E4953E9F84F69EB92074E0A45A87C0639CB8BB447AA8E8A0FCCABF594C275D4B1AB269C14751BC5F582B0560ACFB53DDE1637C4389D36DAED76073B545F75314C1500"})
     browser.refresh()
-    time.sleep(5)  # Wait for the page to refresh
-    logging.info("Cookie login successful")
+    time.sleep(5)
+    browser.save_screenshot("debug_after_cookie.png")
+    logging.info("📸 Screenshot saved as debug_after_cookie.png")
 
-    # Confirm login is successful
-    logging.info("Unlock finished")
-
+    logging.info("✅ Cookie login done. Waiting before quit...")
     time.sleep(10)
     browser.quit()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
-        extension_login()
+        chrome_path, chromedriver_path = prepare_chrome_and_driver()
+        run_unlock(chrome_path, chromedriver_path)
     except Exception as e:
-        logging.error(f"Failed to execute login script: {e}")
+        logging.error(f"❌ Failed: {e}")
