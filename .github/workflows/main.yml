@@ -2,7 +2,7 @@ name: Unlock-NetEaseMusic
 
 on:
   schedule:
-    - cron: "37 */8 * * *"  # 每8小时运行一次
+    - cron: "37 */8 * * *"  # 每8小时运行
   workflow_dispatch:
 
 jobs:
@@ -26,12 +26,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install selenium retrying
 
-      - name: Run unlock script (with Chrome 134)
+      - name: Run unlock script (Chrome 134)
         run: python auto_login.py
 
       - name: Upload debug screenshot (if exists)
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # ✅ 升级为 v4
         with:
           name: debug-screenshot
           path: debug_after_cookie.png
