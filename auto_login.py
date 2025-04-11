@@ -40,6 +40,7 @@ def extension_login():
     logging.info("Initializing Chrome WebDriver")
     try:
         service = Service(ChromeDriverManager().install())  # Auto-download correct chromedriver
+        service = Service(os.path.abspath("./chromedriver.exe"))
         browser = webdriver.Chrome(service=service, options=chrome_options)
     except Exception as e:
         logging.error(f"Failed to initialize ChromeDriver: {e}")
