@@ -2,7 +2,7 @@ name: Unlock-NetEaseMusic
 
 on:
   schedule:
-    - cron: "37 */8 * * *"
+    - cron: "37 */8 * * *"  # 每8小时运行
   workflow_dispatch:
 
 jobs:
@@ -13,28 +13,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install Chrome (Win64 Stable)
-        run: |
-          echo "Installing Google Chrome..."
-          choco install googlechrome --ignore-checksums -y
-          echo "✅ Chrome installed"
-
-      - name: Debug Chrome version
-        shell: pwsh
-        run: |
-          echo "Checking Chrome version..."
-          & "C:\Program Files\Google\Chrome\Application\chrome.exe" --version
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install --upgrade webdriver-manager
+          pip install selenium retrying
 
       - name: Run unlock script
-        env:
-          EMAIL: ${{ secrets.EMAIL }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-          PYTHONIOENCODING: utf-8
-          PYTHONLEGACYWINDOWSSTDIO: utf-8
         run: python auto_login.py
+
+      - name: Upload debug screenshot (if exists)
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-screenshot
+          path: debug_after_cookie.png
