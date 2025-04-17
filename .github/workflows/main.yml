@@ -13,15 +13,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install Chrome & Chromedriver
+      - name: Install specific Chrome version 134.0.6998
         run: |
-          echo "Installing Google Chrome and Chromedriver..."
-          choco install googlechrome -y
-          choco install chromedriver -y --force
-          echo "✅ Chrome & Chromedriver installed successfully."
+          echo "Installing specific Google Chrome version 134.0.6998..."
+          choco install googlechrome --version 134.0.6998 -y
+          echo "✅ Google Chrome 134.0.6998 installed successfully."
+
+      - name: Install specific Chromedriver version 134.0.6998.88
+        run: |
+          echo "Installing specific Chromedriver version 134.0.6998.88..."
+          choco install chromedriver --version 134.0.6998.88 -y --force
+          echo "✅ Chromedriver 134.0.6998.88 installed successfully."
 
       - name: Debug Chrome and Chromedriver
-        shell: pwsh # 强制使用 PowerShell
+        shell: pwsh
         run: |
           echo "Checking Chrome version..."
           if (Test-Path "C:\Program Files\Google\Chrome\Application\chrome.exe") {
